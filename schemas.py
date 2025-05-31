@@ -10,7 +10,7 @@ from pydantic import BaseModel
 class GenreURLChoices(Enum):
     ROCK = 'rock'
     GRUNGE = 'grunge'
-    METAL = 'metal',
+    METAL = 'metal'
     HIP_HOP = 'hip-hop'
     
 class Band(BaseModel): # inherits dari BaseModel

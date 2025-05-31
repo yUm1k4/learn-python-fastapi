@@ -3,7 +3,6 @@ from schemas import GenreURLChoices, Band  # Import GenreURLChoices dari file sc
 
 app = FastAPI()
 
-
 # Band data
 BANDS = [ # List of dictionaries representing bands
     {'id': 1, 'name': 'The Beatles', 'genre': 'Rock'},
@@ -12,18 +11,38 @@ BANDS = [ # List of dictionaries representing bands
         {'title': 'A Night at the Opera', 'release_date': '1975-11-21'},
         {'title': 'News of the World', 'release_date': '1977-10-28'}
     ]},
-    {'id': 4, 'name': 'Metallica', 'genre': 'Metal'},
+    {'id': 4, 'name': 'Metallica', 'genre': 'Metal', 'albums': [
+        {'title': 'Master of Puppets', 'release_date': '1986-03-03'},
+        {'title': 'The Black Album', 'release_date': '1991-08-12'}
+    ]},
 ]
 
 # route:
 @app.get('/bands')
 # async def bands() -> list[dict]: # sebelumnya seperti ini
-async def bands() -> list[Band]: # jadi seperti ini untuk menggunakan model Band
+# async def bands() -> list[Band]: # jadi seperti ini jika menggunakan model Band
+async def bands(
+    genre: GenreURLChoices = None,
+    has_albums: bool = False
+) -> list[Band]: # ketambahan query parameter genre
     # return BANDS
-    return [
-        Band(**b) for b in BANDS  # Menggunakan unpacking untuk mengonversi dictionary ke model Band
-    ]
+
+    band_list = [Band(**b) for b in BANDS]  # Menggunakan unpacking untuk mengonversi dictionary ke model Band
     # unpacking adalah proses mengambil nilai dari dictionary dan memasukkannya ke dalam model Band.
+
+    if genre is not None:
+        band_list = [
+            b for b in band_list if b.genre.lower() == genre.value
+        ]
+
+    if has_albums:
+        band_list = [
+            # b for b in band_list if hasattr(b, 'albums') and b.albums
+            # atau bisa dengan cara:
+            b for b in band_list if len(b.albums) > 0
+        ]
+
+    return band_list  # Mengembalikan daftar band yang sesuai dengan filter genre dan has_albums
 
 # Endpoint utk mendapatkan informasi band berdasarkan ID
 @app.get('/bands/{band_id}', status_code=200)
@@ -47,19 +66,3 @@ async def band(band_id: int) -> Band:
     # raise HTTPException digunakan untuk mengembalikan respons HTTP dengan status code 200 dan detail berisi informasi band
     # raise HTTPException(status_code=200, detail=band) # HTTPException dari FastAPI digunakan untuk mengembalikan respons HTTP dengan status code tertentu
     return band
-
-@app.get('/bands/genre/{genre}') # Endpoint untuk mendapatkan daftar band berdasarkan genre
-async def bands_for_genre(genre: GenreURLChoices) -> list[dict]:
-    # # Menggunakan list comprehension untuk mendapatkan daftar band yang sesuai dengan genre
-    # bands_by_genre = [band for band in BANDS if band['genre'].lower() == genre.value]
-    
-    # if not bands_by_genre:
-    #     raise HTTPException(status_code=404, detail="No bands found for this genre")
-    
-    # return bands_by_genre
-    
-    # ATAU bisa dengan cara:
-
-    return [
-        b for b in BANDS if b['genre'].lower() == genre.value
-    ]

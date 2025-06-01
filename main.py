@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from schemas import GenreURLChoices, Band  # Import GenreURLChoices dari file schemas.py
+from schemas import GenreURLChoices, BandCreate, BandWithID  # Import GenreURLChoices dari file schemas.py
 
 app = FastAPI()
 
@@ -24,15 +24,15 @@ BANDS = [ # List of dictionaries representing bands
 async def bands(
     genre: GenreURLChoices = None,
     has_albums: bool = False
-) -> list[Band]: # ketambahan query parameter genre
+) -> list[BandWithID]: # ketambahan query parameter genre
     # return BANDS
 
-    band_list = [Band(**b) for b in BANDS]  # Menggunakan unpacking untuk mengonversi dictionary ke model Band
+    band_list = [BandWithID(**b) for b in BANDS]  # Menggunakan unpacking untuk mengonversi dictionary ke model Band
     # unpacking adalah proses mengambil nilai dari dictionary dan memasukkannya ke dalam model Band.
 
     if genre is not None:
         band_list = [
-            b for b in band_list if b.genre.lower() == genre.value
+            b for b in band_list if b.genre.value.lower() == genre.value
         ]
 
     if has_albums:
@@ -47,7 +47,7 @@ async def bands(
 # Endpoint utk mendapatkan informasi band berdasarkan ID
 @app.get('/bands/{band_id}', status_code=200)
 # async def band(band_id: int) -> dict: # cara lama sebelum menggunakan model Band
-async def band(band_id: int) -> Band:
+async def band(band_id: int) -> BandWithID:
     # # Looping melalui daftar band
     # for band in BANDS: 
     #     if band['id'] == band_id:
@@ -59,10 +59,18 @@ async def band(band_id: int) -> Band:
 
     # next() digunakan untuk mendapatkan elemen pertama yang cocok dengan kondisi, atau None jika tidak ada yang cocok.
     # band = next((b for b in BANDS if b['id'] == band_id), None) # cara lama sebelum menggunakan model Band
-    band = next((Band(**b) for b in BANDS if b['id'] == band_id), None)
+    band = next((BandWithID(**b) for b in BANDS if b['id'] == band_id), None)
     if band is None:
         raise HTTPException(status_code=404, detail="Band not found") # Jika band tidak ditemukan, mengembalikan respons dengan status code 404 dan pesan "Band not found"
     
     # raise HTTPException digunakan untuk mengembalikan respons HTTP dengan status code 200 dan detail berisi informasi band
     # raise HTTPException(status_code=200, detail=band) # HTTPException dari FastAPI digunakan untuk mengembalikan respons HTTP dengan status code tertentu
     return band
+
+@app.post('/bands', status_code=201)
+async def create_band(band_data: BandCreate) -> BandWithID:
+    id = BANDS[-1]['id'] + 1 # Mengambil ID terakhir dan menambahkannya untuk ID baru
+    band = BandWithID(id=id, **band_data.model_dump()).model_dump() # Menggunakan model_dump untuk mengonversi model Pydantic ke dictionary
+    BANDS.append(band) # Menambahkan band baru ke daftar BANDS
+    
+    return band # Mengembalikan band yang baru dibuat
